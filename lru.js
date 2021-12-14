@@ -37,15 +37,16 @@ var LRUCache = /** @class */ (function () {
         };
     };
     LRUCache.prototype.set = function (key, value, age) {
+        //this.dump()
         age = age || this.MAX_AGE;
-        var now = this.MAX_AGE ? Date.now() : 0;
+        var now = Date.now();
         //if the key already exists
         if (this.hashTable[key]) {
             this.hashTable[key].value = value;
             this.hashTable[key].timeStamp = now;
             this.hashTable[key].maxAge = age;
             //update most recently used by calling get function
-            this.get(key);
+            this.base_get(key, false);
         }
         else {
             //creating a new node
@@ -73,12 +74,20 @@ var LRUCache = /** @class */ (function () {
             this.deleteNode(this.tail.key);
         }
     };
-    LRUCache.prototype.get = function (key) {
+    LRUCache.prototype.base_get = function (key, useStale) {
         if (this.hashTable[key]) {
+            var now = Date.now();
+            //useStale is to avoid the race condition where when this get is
+            //called from the set function to update the timeStamp,
+            //due to the delay the node expires.
+            if (!useStale) {
+                if (this.isStale(key)) {
+                    this.deleteNode(key);
+                    return -1;
+                }
+            }
             var _a = this.hashTable[key], value = _a.value, timeStamp = _a.timeStamp, maxAge = _a.maxAge, prev = _a.prev, next = _a.next;
-            /*if isStale(this.hashTable[key]){
-
-            }*/
+            this.hashTable[key].timeStamp = now;
             //get ready to move this node to head
             if (prev) {
                 prev.next = next;
@@ -100,7 +109,14 @@ var LRUCache = /** @class */ (function () {
             this.head = this.hashTable[key];
             return value;
         }
-        return -1;
+        else {
+            return -1;
+        }
+    };
+    //a wrapper around the private base_get function to avoid exposing use_Stale switch.
+    LRUCache.prototype.get = function (key) {
+        //this.dump()
+        return this.base_get(key, false);
     };
     LRUCache.prototype.deleteNode = function (key) {
         if (this.hashTable[key]) {
@@ -123,6 +139,28 @@ var LRUCache = /** @class */ (function () {
         else {
             //nop
             return;
+        }
+    };
+    LRUCache.prototype.isStale = function (key) {
+        if (!this.hashTable[key]) {
+            console.log("returnin from 1");
+            return true;
+        }
+        var _a = this.hashTable[key], value = _a.value, timeStamp = _a.timeStamp, maxAge = _a.maxAge, prev = _a.prev, next = _a.next;
+        if ((maxAge == 0) && (this.MAX_AGE == 0)) {
+            console.log("returnin from 2");
+            return true;
+        }
+        var diff = Date.now() - timeStamp;
+        console.log("diff is " + diff.toString() + " - now: " + Date.now().toString() + " timestamp: " + timeStamp.toString());
+        if (maxAge) {
+            //the local maxAge takes priorty over the global maxAge
+            console.log("local: "+maxAge.toString());
+            return diff > maxAge;
+        }
+        else {
+            console.log("global: "+this.MAX_AGE.toString());
+            return diff > this.MAX_AGE;
         }
     };
     LRUCache.prototype.dump = function () {

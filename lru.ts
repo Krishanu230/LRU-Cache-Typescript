@@ -42,8 +42,9 @@ export class LRUCache {
   }
 
   public set(key, value, age?:number){
+    //this.dump()
     age = age || this.MAX_AGE
-    const now = this.MAX_AGE ? Date.now() : 0
+    const now = Date.now()
 
     //if the key already exists
     if(this.hashTable[key]){
@@ -51,7 +52,7 @@ export class LRUCache {
       this.hashTable[key].timeStamp = now;
       this.hashTable[key].maxAge = age;
       //update most recently used by calling get function
-      this.get(key);
+      this.base_get(key, false);
     }else{
       //creating a new node
       this.hashTable[key] = {
@@ -82,12 +83,21 @@ export class LRUCache {
     }
   }
 
-  public get(key){
+  private base_get(key, useStale:boolean){
     if (this.hashTable[key]) {
-            const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
-            if isStale(this.hashTable[key]){
-
+            const now = Date.now()
+            //useStale is to avoid the race condition where when this get is
+            //called from the set function to update the timeStamp,
+            //due to the delay the node expires.
+            if (!useStale){
+              if (this.isStale(key)){
+                this.deleteNode(key);
+                return -1;
+              }
             }
+
+            const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
+            this.hashTable[key].timeStamp = now;
 
             //get ready to move this node to head
             if (prev) {
@@ -111,8 +121,15 @@ export class LRUCache {
             //redefine head
             this.head = this.hashTable[key];
             return value;
+        }else{
+            return -1;
         }
-        return -1;
+  }
+
+  //a wrapper around the private base_get function to avoid exposing use_Stale switch.
+  public get(key){
+    //this.dump()
+    return this.base_get(key, false)
   }
 
   private deleteNode(key){
@@ -135,6 +152,25 @@ export class LRUCache {
     }else{
       //nop
       return
+    }
+  }
+
+  private isStale(key){
+    if (!this.hashTable[key]){
+      return true
+    }
+    const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
+
+    if ((maxAge == 0) && (this.MAX_AGE == 0)){
+        return true
+    }
+
+    const diff = Date.now() - timeStamp
+    if (maxAge){
+      //the local maxAge takes priorty over the global maxAge
+      return diff > maxAge
+    }else{
+      return diff > this.MAX_AGE
     }
   }
 

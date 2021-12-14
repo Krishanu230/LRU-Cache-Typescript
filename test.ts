@@ -1,15 +1,14 @@
 import {LRUCache} from './lru'
 var c = new LRUCache(
   LRUCache.WithMax(3),
-  LRUCache.WithMaxAge(1000)
+  LRUCache.WithMaxAge(5001)
 )
+
+function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
 
 c.set("k1", "v1")
 c.set("k2", "v2")
-console.log(c.get("k1"))
-c.set("k3", "v3")
-c.set("k4", "v4")
-console.log(c.get("k1"))
-console.log(c.get("k2"))
-console.log(c.get("k3"))
-console.log(c.get("k4"))
+setTimeout(() => {  console.log(c.get("k2")); }, 2000);
+setTimeout(() => {  console.log(c.get("k2")); }, 11000);

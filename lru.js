@@ -1,6 +1,12 @@
 "use strict";
-exports.__esModule = true;
-exports.LRUCache = void 0;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LRUCache = exports.LRUItem = void 0;
+var LRUItem = /** @class */ (function () {
+    function LRUItem() {
+    }
+    return LRUItem;
+}());
+exports.LRUItem = LRUItem;
 var LRUCache = /** @class */ (function () {
     function LRUCache() {
         var options = [];
@@ -11,7 +17,7 @@ var LRUCache = /** @class */ (function () {
         this.MAX_ITEMS = Infinity;
         this.CUR_ITEMS = 0;
         this.MAX_AGE = 0;
-        this.hashTable = new Map(); // choosing this over native js object because of the object-based keys
+        this.hashTable = new Map(); // choosing Map over native js object because of the object-based keys
         this.head = null;
         this.tail = null;
         //apply the options
@@ -36,6 +42,14 @@ var LRUCache = /** @class */ (function () {
             c.MAX_AGE = age;
         };
     };
+    LRUCache.prototype.reset = function () {
+        this.MAX_ITEMS = Infinity;
+        this.CUR_ITEMS = 0;
+        this.MAX_AGE = 0;
+        this.hashTable.clear();
+        this.head = null;
+        this.tail = null;
+    };
     LRUCache.prototype.set = function (key, value, age) {
         //this.dump()
         age = age || this.MAX_AGE;
@@ -50,7 +64,7 @@ var LRUCache = /** @class */ (function () {
         }
         else {
             //creating a new node
-            this.hashTable[key] = {
+            var node = {
                 key: key,
                 value: value,
                 timeStamp: now,
@@ -58,6 +72,7 @@ var LRUCache = /** @class */ (function () {
                 prev: null,
                 next: null
             };
+            this.hashTable[key] = node;
             //if head exists, update the pointers
             if (this.head) {
                 this.hashTable[key].next = this.head;
@@ -86,18 +101,19 @@ var LRUCache = /** @class */ (function () {
                     return -1;
                 }
             }
-            var _a = this.hashTable[key], value = _a.value, timeStamp = _a.timeStamp, maxAge = _a.maxAge, prev = _a.prev, next = _a.next;
+            var node = this.hashTable[key];
+            //const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
             this.hashTable[key].timeStamp = now;
             //get ready to move this node to head
-            if (prev) {
-                prev.next = next;
+            if (node.prev) {
+                node.prev.next = node.next;
             }
-            if (next) {
-                next.prev = prev;
+            if (node.next) {
+                node.next.prev = node.prev;
             }
             //if the get value was the next to be removed
             if (this.tail === this.hashTable[key]) {
-                this.tail = prev || this.hashTable[key];
+                this.tail = node.prev || this.hashTable[key];
             }
             //redefine prev
             this.hashTable[key].prev = null;
@@ -107,7 +123,7 @@ var LRUCache = /** @class */ (function () {
             }
             //redefine head
             this.head = this.hashTable[key];
-            return value;
+            return node.value;
         }
         else {
             return -1;
@@ -120,18 +136,19 @@ var LRUCache = /** @class */ (function () {
     };
     LRUCache.prototype.deleteNode = function (key) {
         if (this.hashTable[key]) {
-            var _a = this.hashTable[key], value = _a.value, timeStamp = _a.timeStamp, maxAge = _a.maxAge, prev = _a.prev, next = _a.next;
-            if (prev) {
-                prev.next = next;
+            //let {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
+            var node = this.hashTable[key];
+            if (node.prev) {
+                node.prev.next = node.next;
             }
-            if (next) {
-                next.prev = prev;
+            if (node.next) {
+                node.next.prev = node.prev;
             }
             if (this.head === this.hashTable[key]) {
-                this.head = next;
+                this.head = node.next;
             }
             if (this.tail === this.hashTable[key]) {
-                this.tail = prev;
+                this.tail = node.prev;
             }
             delete this.hashTable[key];
             this.CUR_ITEMS -= 1;
@@ -143,25 +160,30 @@ var LRUCache = /** @class */ (function () {
     };
     LRUCache.prototype.isStale = function (key) {
         if (!this.hashTable[key]) {
-            console.log("returnin from 1");
             return true;
         }
-        var _a = this.hashTable[key], value = _a.value, timeStamp = _a.timeStamp, maxAge = _a.maxAge, prev = _a.prev, next = _a.next;
-        if ((maxAge == 0) && (this.MAX_AGE == 0)) {
-            console.log("returnin from 2");
+        //const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
+        var node = this.hashTable[key];
+        if ((node.maxAge == 0) && (this.MAX_AGE == 0)) {
             return true;
         }
-        var diff = Date.now() - timeStamp;
-        console.log("diff is " + diff.toString() + " - now: " + Date.now().toString() + " timestamp: " + timeStamp.toString());
-        if (maxAge) {
+        var diff = Date.now() - node.timeStamp;
+        if (node.maxAge) {
             //the local maxAge takes priorty over the global maxAge
-            console.log("local: "+maxAge.toString());
-            return diff > maxAge;
+            return diff > node.maxAge;
         }
         else {
-            console.log("global: "+this.MAX_AGE.toString());
             return diff > this.MAX_AGE;
         }
+    };
+    LRUCache.prototype.load = function (maxItems, curItems, maxAge, htable, head, tail) {
+        this.reset();
+        this.MAX_ITEMS = maxItems;
+        this.CUR_ITEMS = curItems;
+        this.MAX_AGE = maxAge;
+        this.hashTable = new Map(Object.entries(htable));
+        this.head = head;
+        this.tail = tail;
     };
     LRUCache.prototype.dump = function () {
         console.log("----------");

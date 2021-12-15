@@ -1,10 +1,19 @@
-type LRUCacheOption = (l: LRUCache) => void
+export type LRUCacheOption = (l: LRUCache) => void
+
+export class LRUItem {
+  public key;
+  public value;
+  public timeStamp: number;
+  public maxAge: number;
+  public prev;
+  public next;
+}
 
 export class LRUCache {
   private MAX_ITEMS: number;
   private CUR_ITEMS: number;
   private MAX_AGE: number;
-  private hashTable;
+  private hashTable: Map<any, LRUItem>;
   private head;
   private tail;
 
@@ -13,7 +22,7 @@ export class LRUCache {
     this.MAX_ITEMS = Infinity;
     this.CUR_ITEMS = 0;
     this.MAX_AGE = 0;
-    this.hashTable = new Map() // choosing this over native js object because of the object-based keys
+    this.hashTable = new Map<any, LRUItem>() // choosing Map over native js object because of the object-based keys
     this.head = null;
     this.tail = null;
 
@@ -41,6 +50,15 @@ export class LRUCache {
     }
   }
 
+  public reset(){
+    this.MAX_ITEMS = Infinity;
+    this.CUR_ITEMS = 0;
+    this.MAX_AGE = 0;
+    this.hashTable.clear()
+    this.head = null;
+    this.tail = null;
+  }
+
   public set(key, value, age?:number){
     //this.dump()
     age = age || this.MAX_AGE
@@ -55,7 +73,7 @@ export class LRUCache {
       this.base_get(key, false);
     }else{
       //creating a new node
-      this.hashTable[key] = {
+      let node: LRUItem = {
         key: key,
         value: value,
         timeStamp: now,
@@ -63,6 +81,7 @@ export class LRUCache {
         prev: null,
         next: null
       }
+      this.hashTable[key] = node
       //if head exists, update the pointers
       if (this.head) {
          this.hashTable[key].next = this.head;
@@ -95,20 +114,20 @@ export class LRUCache {
                 return -1;
               }
             }
-
-            const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
+            const node: LRUItem = this.hashTable[key]
+            //const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
             this.hashTable[key].timeStamp = now;
 
             //get ready to move this node to head
-            if (prev) {
-                prev.next = next;
+            if (node.prev) {
+                node.prev.next = node.next;
             }
-            if (next) {
-                next.prev = prev;
+            if (node.next) {
+                node.next.prev = node.prev;
             }
             //if the get value was the next to be removed
             if (this.tail === this.hashTable[key]) {
-                this.tail = prev || this.hashTable[key];
+                this.tail = node.prev || this.hashTable[key];
             }
 
             //redefine prev
@@ -120,7 +139,7 @@ export class LRUCache {
             }
             //redefine head
             this.head = this.hashTable[key];
-            return value;
+            return node.value;
         }else{
             return -1;
         }
@@ -134,18 +153,19 @@ export class LRUCache {
 
   private deleteNode(key){
     if(this.hashTable[key]){
-      let {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
-      if (prev) {
-          prev.next = next;
+      //let {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
+      const node: LRUItem = this.hashTable[key]
+      if (node.prev) {
+          node.prev.next = node.next;
       }
-      if (next) {
-          next.prev = prev;
+      if (node.next) {
+          node.next.prev = node.prev;
       }
       if (this.head === this.hashTable[key]){
-        this.head = next
+        this.head = node.next
       }
       if (this.tail === this.hashTable[key]){
-        this.tail = prev
+        this.tail = node.prev
       }
       delete this.hashTable[key]
       this.CUR_ITEMS -= 1
@@ -159,19 +179,30 @@ export class LRUCache {
     if (!this.hashTable[key]){
       return true
     }
-    const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
+    //const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
+    const node: LRUItem = this.hashTable[key]
 
-    if ((maxAge == 0) && (this.MAX_AGE == 0)){
+    if ((node.maxAge == 0) && (this.MAX_AGE == 0)){
         return true
     }
 
-    const diff = Date.now() - timeStamp
-    if (maxAge){
+    const diff = Date.now() - node.timeStamp
+    if (node.maxAge){
       //the local maxAge takes priorty over the global maxAge
-      return diff > maxAge
+      return diff > node.maxAge
     }else{
       return diff > this.MAX_AGE
     }
+  }
+
+  public load(maxItems:number, curItems:number, maxAge:number, htable, head, tail){
+    this.reset()
+    this.MAX_ITEMS = maxItems
+    this.CUR_ITEMS = curItems
+    this.MAX_AGE = maxAge
+    this.hashTable = new Map(Object.entries(htable));
+    this.head = head
+    this.tail = tail
   }
 
   public dump(){

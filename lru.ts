@@ -9,6 +9,7 @@ export class LRUItem {
   public next;
 }
 
+//LRU Implementation using Double Linked List to maintian the usage order and a hashmap.
 export class LRUCache {
   private MAX_ITEMS: number;
   private CUR_ITEMS: number;
@@ -17,6 +18,7 @@ export class LRUCache {
   private head;
   private tail;
 
+  //the constructor options input is inspired by: https://medium.com/swlh/using-a-golang-pattern-to-write-better-typescript-58044b56b26c
   constructor (...options: LRUCacheOption[]) {
     // defaults
     this.MAX_ITEMS = Infinity;
@@ -54,7 +56,7 @@ export class LRUCache {
     this.MAX_ITEMS = Infinity;
     this.CUR_ITEMS = 0;
     this.MAX_AGE = 0;
-    this.hashTable.clear()
+    this.hashTable = new Map<any, LRUItem>()
     this.head = null;
     this.tail = null;
   }
@@ -115,7 +117,6 @@ export class LRUCache {
               }
             }
             const node: LRUItem = this.hashTable[key]
-            //const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
             this.hashTable[key].timeStamp = now;
 
             //get ready to move this node to head
@@ -147,7 +148,6 @@ export class LRUCache {
 
   //a wrapper around the private base_get function to avoid exposing use_Stale switch.
   public get(key){
-    //this.dump()
     return this.base_get(key, false)
   }
 
@@ -183,7 +183,7 @@ export class LRUCache {
     const node: LRUItem = this.hashTable[key]
 
     if ((node.maxAge == 0) && (this.MAX_AGE == 0)){
-        return true
+        return false
     }
 
     const diff = Date.now() - node.timeStamp
@@ -206,7 +206,6 @@ export class LRUCache {
   }
 
   public dump(){
-    console.log("----------")
     console.log("MAX_ITEMS: "+ this.MAX_ITEMS)
     console.log("CUR_ITEMS: "+ this.CUR_ITEMS)
     console.log("MAX_AGE: "+ this.MAX_AGE)

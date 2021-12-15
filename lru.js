@@ -7,7 +7,9 @@ var LRUItem = /** @class */ (function () {
     return LRUItem;
 }());
 exports.LRUItem = LRUItem;
+//LRU Implementation using Double Linked List to maintian the usage order and a hashmap.
 var LRUCache = /** @class */ (function () {
+    //the constructor options input is inspired by: https://medium.com/swlh/using-a-golang-pattern-to-write-better-typescript-58044b56b26c
     function LRUCache() {
         var options = [];
         for (var _i = 0; _i < arguments.length; _i++) {
@@ -46,7 +48,7 @@ var LRUCache = /** @class */ (function () {
         this.MAX_ITEMS = Infinity;
         this.CUR_ITEMS = 0;
         this.MAX_AGE = 0;
-        this.hashTable.clear();
+        this.hashTable = new Map();
         this.head = null;
         this.tail = null;
     };
@@ -102,7 +104,6 @@ var LRUCache = /** @class */ (function () {
                 }
             }
             var node = this.hashTable[key];
-            //const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
             this.hashTable[key].timeStamp = now;
             //get ready to move this node to head
             if (node.prev) {
@@ -131,7 +132,6 @@ var LRUCache = /** @class */ (function () {
     };
     //a wrapper around the private base_get function to avoid exposing use_Stale switch.
     LRUCache.prototype.get = function (key) {
-        //this.dump()
         return this.base_get(key, false);
     };
     LRUCache.prototype.deleteNode = function (key) {
@@ -165,7 +165,7 @@ var LRUCache = /** @class */ (function () {
         //const {value, timeStamp, maxAge, prev, next} = this.hashTable[key];
         var node = this.hashTable[key];
         if ((node.maxAge == 0) && (this.MAX_AGE == 0)) {
-            return true;
+            return false;
         }
         var diff = Date.now() - node.timeStamp;
         if (node.maxAge) {
@@ -186,7 +186,6 @@ var LRUCache = /** @class */ (function () {
         this.tail = tail;
     };
     LRUCache.prototype.dump = function () {
-        console.log("----------");
         console.log("MAX_ITEMS: " + this.MAX_ITEMS);
         console.log("CUR_ITEMS: " + this.CUR_ITEMS);
         console.log("MAX_AGE: " + this.MAX_AGE);

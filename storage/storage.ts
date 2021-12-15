@@ -1,7 +1,7 @@
 export interface Storage {
-    getItem(key: any): Promise<any>
+    getCache(key: any): any
 
-    setItem(key: any, content: any): Promise<void>
+    setCache(key: any, content: any): void
 
-    clear(): Promise<void>
+    clear(): void
 }

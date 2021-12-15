@@ -10,27 +10,15 @@ export class LRUCacheDisk {
     this.storage = new LRUStorage(path, this.lruMem)
   }
 
-  public async set_disk(key, value, age?:number)  {
-    const raw = await this.storage.getCache().catch((err) => { console.error(err); });
-    console.log("before reading")
-    this.lruMem.dump()
+  public set_disk(key, value, age?:number): void  {
+    const raw = this.storage.getCache()
     this.lruMem.load(raw.MAX_ITEMS, raw.CUR_ITEMS, raw.MAX_AGE, raw.hashTable, raw.head, raw.tail)
-    console.log("after reading")
-    this.lruMem.dump()
     this.lruMem.set(key, value, age)
-    console.log("after setting")
-    this.lruMem.dump()
-    console.log("after here")
-    await this.storage.setCache(this.lruMem).catch((err) => { console.error(err); });
+    this.storage.setCache(this.lruMem)
   }
 
-  public async get_disk(key: any) : Promise<any> {
-    const raw = await this.storage.getCache().catch((err) => { console.error(err); });
-    console.log("raw is")
-    console.log(raw.MAX_ITEMS, raw.CUR_ITEMS, raw.MAX_AGE, raw.hashTable, raw.head, raw.tail)
-    this.lruMem.load(raw.MAX_ITEMS, raw.CUR_ITEMS, raw.MAX_AGE, raw.hashTable, raw.head, raw.tail)
-    console.log("reading")
-    this.lruMem.dump()
+  public get_disk(key: any): any {
+    const raw = this.storage.getCache()
     return this.lruMem.get(key)
   }
 }

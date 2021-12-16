@@ -1,4 +1,3 @@
-# Run Aerodrome on a benchmark
 ### Dependencies
 1.  flatted
 	`npm i flatted`
